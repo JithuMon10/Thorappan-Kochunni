@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       role: authenticatedRole,
     });
 
-    // Set HTTP-Only secure cookie
+    // Set HTTP-Only secure session cookie (destroyed on browser/session close)
     response.cookies.set({
       name: COOKIE_NAME,
       value: token,
@@ -77,7 +77,6 @@ export async function POST(req: NextRequest) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
     return response;

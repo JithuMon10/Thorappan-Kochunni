@@ -61,20 +61,28 @@ export default function LockScreen({ onAuthenticated }: LockScreenProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-zinc-400 mb-1.5">
               Access Password
             </label>
             <div className="relative">
               <input
+                id="vault_access_key"
+                name="vault_access_key"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
                 disabled={loading}
                 autoFocus
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 pr-10 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 transition-colors"
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-form-type="other"
+                spellCheck="false"
+                autoCorrect="off"
+                autoCapitalize="off"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 pr-10 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-zinc-400 focus:border-zinc-400 transition-colors font-mono"
               />
               <button
                 type="button"
