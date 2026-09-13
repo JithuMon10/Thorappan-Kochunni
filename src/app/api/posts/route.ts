@@ -141,22 +141,44 @@ export async function POST(req: NextRequest) {
       const supabase = getSupabaseServerClient();
       const buffer = Buffer.from(await file.arrayBuffer());
 
+      // Ensure storage bucket exists
+      try {
+        const { data: bucket } = await supabase.storage.getBucket("thorappankochunni_files");
+        if (!bucket) {
+          await supabase.storage.createBucket("thorappankochunni_files", { public: true });
+        }
+      } catch (bErr) {
+        console.warn("Bucket check warning (will attempt upload anyway):", bErr);
+      }
+
       // Generate sanitized filename with timestamp prefix
       const cleanFileName = originalName.replace(/[^a-zA-Z0-9._-]/g, "_");
       const storagePath = `${Date.now()}_${cleanFileName}`;
 
       // Upload to Supabase Storage Bucket
-      const { error: uploadError } = await supabase.storage
+      let { error: uploadError } = await supabase.storage
         .from("thorappankochunni_files")
         .upload(storagePath, buffer, {
           contentType: fileType,
-          upsert: false,
+          upsert: true,
         });
+
+      // If bucket not found error, create and retry once
+      if (uploadError && uploadError.message?.toLowerCase().includes("not found")) {
+        await supabase.storage.createBucket("thorappankochunni_files", { public: true });
+        const retry = await supabase.storage
+          .from("thorappankochunni_files")
+          .upload(storagePath, buffer, {
+            contentType: fileType,
+            upsert: true,
+          });
+        uploadError = retry.error;
+      }
 
       if (uploadError) {
         console.error("Supabase storage upload error:", uploadError);
         return NextResponse.json(
-          { error: `Storage upload failed: ${uploadError.message}. Make sure bucket 'thorappankochunni_files' exists.` },
+          { error: `Storage upload failed: ${uploadError.message}. Make sure Supabase storage is active.` },
           { status: 500 }
         );
       }

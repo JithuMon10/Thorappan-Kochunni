@@ -363,29 +363,53 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                   </div>
 
                   <div className="sm:col-span-2">
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="cursor-pointer border border-dashed border-zinc-700 hover:border-zinc-500 rounded-lg px-3 py-2 bg-zinc-950/60 transition-colors flex items-center justify-between text-xs text-zinc-300"
+                    <label
+                      htmlFor="vault-file-input"
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (e.dataTransfer.files?.[0]) {
+                          setSelectedFile(e.dataTransfer.files[0]);
+                        }
+                      }}
+                      className="cursor-pointer border border-dashed border-zinc-700 hover:border-zinc-400 rounded-lg px-3 py-2 bg-zinc-950/60 hover:bg-zinc-900 transition-colors flex items-center justify-between text-xs text-zinc-300 block"
                     >
                       <div className="flex items-center gap-2 truncate">
                         <Upload className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
                         <span className="truncate">
                           {selectedFile ? (
-                            <span className="text-zinc-200 font-medium">
+                            <span className="text-zinc-100 font-medium">
                               {selectedFile.name} ({formatFileSize(selectedFile.size)})
                             </span>
                           ) : (
-                            <span className="text-zinc-500">
-                              Choose file (PDF, image, document, zip)...
+                            <span className="text-zinc-400">
+                              Click or drag file here (PDF, image, code, zip)...
                             </span>
                           )}
                         </span>
                       </div>
-                      <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 shrink-0">
-                        Browse
-                      </span>
-                    </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {selectedFile && (
+                          <span
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setSelectedFile(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            className="text-[11px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-red-400"
+                            title="Remove file"
+                          >
+                            ✕
+                          </span>
+                        )}
+                        <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700">
+                          {selectedFile ? "Change" : "Browse"}
+                        </span>
+                      </div>
+                    </label>
                     <input
+                      id="vault-file-input"
                       type="file"
                       ref={fileInputRef}
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
@@ -395,26 +419,40 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                 </div>
 
                 {uploadError && (
-                  <div className="p-2 rounded bg-red-950/30 border border-red-800/40 text-red-300 text-xs">
+                  <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-800 text-red-200 text-xs">
                     {uploadError}
                   </div>
                 )}
 
                 <div className="flex justify-end pt-1">
                   <button
-                    type="submit"
-                    disabled={!selectedFile || uploading}
-                    className="py-1.5 px-4 bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 disabled:opacity-40 text-zinc-950 font-medium text-xs rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                    type={selectedFile ? "submit" : "button"}
+                    onClick={() => {
+                      if (!selectedFile) {
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    disabled={uploading}
+                    className={`py-1.5 px-4 font-medium text-xs rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      selectedFile
+                        ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-950 shadow-sm"
+                        : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                    }`}
                   >
                     {uploading ? (
                       <>
-                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                         <span>Uploading...</span>
+                      </>
+                    ) : selectedFile ? (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Upload &quot;{selectedFile.name.length > 20 ? selectedFile.name.slice(0, 18) + "..." : selectedFile.name}&quot;</span>
                       </>
                     ) : (
                       <>
-                        <Plus className="w-3 h-3" />
-                        <span>Upload</span>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Select File to Upload</span>
                       </>
                     )}
                   </button>
