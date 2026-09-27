@@ -21,6 +21,7 @@ import {
   RefreshCw,
   AlertCircle,
   Edit2,
+  X,
 } from "lucide-react";
 import { PostItem, UserRole } from "@/types";
 import AdminSettingsModal from "./AdminSettingsModal";
@@ -835,28 +836,51 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                             </div>
                           </div>
 
-                          {/* Discreet Approve button - only visible to admin & editor */}
+                          {/* Approve / Disapprove button - only visible to admin & editor */}
                           {canEdit && (
-                            <div className="flex items-center justify-between mt-1.5 px-0.5">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleApprove(post);
-                                }}
-                                disabled={approvingId === post.id}
-                                className="text-[11px] text-zinc-500 hover:text-zinc-300 font-mono transition-colors flex items-center gap-1 cursor-pointer select-none py-0.5"
-                                title={post.is_approved ? "Click to revoke approval" : "Approve image"}
-                              >
+                            <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-zinc-800/60">
+                              <div className="flex items-center gap-1.5">
                                 {post.is_approved ? (
-                                  <>
-                                    <VerifiedBadge className="w-3 h-3" />
-                                    <span className="text-sky-400 font-medium">approved</span>
-                                  </>
+                                  <span className="inline-flex items-center gap-1 text-[11px] text-sky-400 font-medium">
+                                    <VerifiedBadge className="w-3.5 h-3.5" />
+                                    <span>Approved</span>
+                                  </span>
                                 ) : (
-                                  <span className="hover:underline">approve</span>
+                                  <span className="text-[10px] text-zinc-500 font-mono">
+                                    Lab Review
+                                  </span>
                                 )}
-                              </button>
+                              </div>
+
+                              {post.is_approved ? (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleApprove(post);
+                                  }}
+                                  disabled={approvingId === post.id}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-800/80 hover:bg-red-950/40 border border-zinc-700/70 hover:border-red-500/40 text-zinc-300 hover:text-red-300 text-xs font-medium transition-colors cursor-pointer"
+                                  title="Click to disapprove"
+                                >
+                                  <X className="w-3 h-3 text-red-400" />
+                                  <span className="text-[11px]">Disapprove</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleApprove(post);
+                                  }}
+                                  disabled={approvingId === post.id}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-zinc-800/80 hover:bg-zinc-800 border border-zinc-700/70 hover:border-zinc-600 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-colors cursor-pointer"
+                                  title="Click to approve"
+                                >
+                                  <Check className="w-3 h-3 text-sky-400" />
+                                  <span className="text-[11px]">Approve</span>
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
