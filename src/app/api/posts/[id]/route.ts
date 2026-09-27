@@ -87,11 +87,12 @@ export async function PATCH(
 
   try {
     const body = await req.json();
-    const { title, content } = body;
+    const { title, content, is_approved } = body;
 
-    const updates: { title?: string; content?: string } = {};
+    const updates: { title?: string; content?: string; is_approved?: boolean } = {};
     if (typeof title === "string") updates.title = title.trim();
     if (typeof content === "string") updates.content = content;
+    if (typeof is_approved === "boolean") updates.is_approved = is_approved;
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: "No fields provided to update." }, { status: 400 });

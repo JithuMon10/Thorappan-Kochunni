@@ -67,8 +67,12 @@ CREATE TABLE IF NOT EXISTS posts (
   file_name TEXT,           -- Original name of the uploaded file
   file_size BIGINT,         -- Size in bytes
   file_type TEXT,           -- MIME type (e.g. application/pdf, image/png)
+  is_approved BOOLEAN DEFAULT FALSE, -- Lab image approval status (Admin & Editor)
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure is_approved column exists if posts table already exists
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT FALSE;
 
 -- Create index for fast sorting by newest first
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);

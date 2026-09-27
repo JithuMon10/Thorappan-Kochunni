@@ -2,15 +2,23 @@
 
 import React from "react";
 import { X, Download, ExternalLink } from "lucide-react";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface LightboxModalProps {
   isOpen: boolean;
   onClose: () => void;
   imageUrl: string | null;
   title: string | null;
+  isApproved?: boolean;
 }
 
-export default function LightboxModal({ isOpen, onClose, imageUrl, title }: LightboxModalProps) {
+export default function LightboxModal({
+  isOpen,
+  onClose,
+  imageUrl,
+  title,
+  isApproved,
+}: LightboxModalProps) {
   if (!isOpen || !imageUrl) return null;
 
   return (
@@ -23,9 +31,12 @@ export default function LightboxModal({ isOpen, onClose, imageUrl, title }: Ligh
         className="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center bg-zinc-900 border border-zinc-800 rounded-xl p-4 shadow-2xl overflow-hidden"
       >
         <div className="w-full flex items-center justify-between pb-2.5 mb-2 border-b border-zinc-800">
-          <span className="text-xs font-medium text-zinc-200 truncate pr-4">
-            {title || "Image Preview"}
-          </span>
+          <div className="flex items-center gap-1.5 truncate pr-4">
+            <span className="text-xs font-medium text-zinc-200 truncate">
+              {title || "Image Preview"}
+            </span>
+            {isApproved && <VerifiedBadge className="w-4 h-4" />}
+          </div>
           <div className="flex items-center gap-1.5">
             <a
               href={imageUrl}

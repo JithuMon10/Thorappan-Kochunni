@@ -9,6 +9,7 @@ export interface PostItem {
   file_name?: string | null;
   file_size?: number | null;
   file_type?: string | null;
+  is_approved?: boolean | null;
   created_at: string;
 }
 

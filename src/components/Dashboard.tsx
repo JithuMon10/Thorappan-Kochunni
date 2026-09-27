@@ -27,6 +27,7 @@ import AdminSettingsModal from "./AdminSettingsModal";
 import LightboxModal from "./LightboxModal";
 import NoteModal from "./NoteModal";
 import EditPostModal from "./EditPostModal";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface DashboardProps {
   role: UserRole;
@@ -58,13 +59,18 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
 
   // Modals
   const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{
+    url: string;
+    title: string;
+    isApproved?: boolean;
+  } | null>(null);
   const [activeModalNote, setActiveModalNote] = useState<PostItem | null>(null);
   const [editingPost, setEditingPost] = useState<PostItem | null>(null);
 
   // Delete & copy state
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   // Multi-select state (for Admin)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -73,6 +79,37 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
   const canUpload = role === "uploader" || role === "admin";
   const canAdmin = role === "admin";
   const canEdit = role === "editor" || role === "admin";
+
+  const handleToggleApprove = async (post: PostItem) => {
+    if (approvingId === post.id) return;
+    const newStatus = !post.is_approved;
+    setApprovingId(post.id);
+
+    // Optimistic UI update
+    setPosts((prev) =>
+      prev.map((p) => (p.id === post.id ? { ...p, is_approved: newStatus } : p))
+    );
+
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_approved: newStatus }),
+      });
+      if (!res.ok) {
+        setPosts((prev) =>
+          prev.map((p) => (p.id === post.id ? { ...p, is_approved: !newStatus } : p))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update approval status:", err);
+      setPosts((prev) =>
+        prev.map((p) => (p.id === post.id ? { ...p, is_approved: !newStatus } : p))
+      );
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -751,34 +788,77 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                     </div>
 
                     {/* Title */}
-                    <h3 className="text-xs font-semibold text-zinc-200 truncate mb-2">
-                      {post.title || post.file_name || "Untitled"}
-                    </h3>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <h3 className="text-xs font-semibold text-zinc-200 truncate">
+                        {post.title || post.file_name || "Untitled"}
+                      </h3>
+                      {post.is_approved && (
+                        <span title="Approved" className="inline-flex items-center">
+                          <VerifiedBadge className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </div>
 
                     {/* Content */}
                     <div className="flex-1 my-1.5">
                       {/* Image Box */}
                       {isImage && post.file_url && (
-                        <div
-                          onClick={() =>
-                            setLightboxImage({
-                              url: post.file_url!,
-                              title: post.title || post.file_name || "Image Preview",
-                            })
-                          }
-                          className="relative w-full h-40 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 cursor-pointer"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={post.file_url}
-                            alt={post.file_name || "Image"}
-                            className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <span className="px-2 py-1 rounded bg-zinc-900/90 text-zinc-200 text-[11px] flex items-center gap-1 border border-zinc-700">
-                              <Eye className="w-3 h-3" /> Expand
-                            </span>
+                        <div>
+                          <div
+                            onClick={() =>
+                              setLightboxImage({
+                                url: post.file_url!,
+                                title: post.title || post.file_name || "Image Preview",
+                                isApproved: Boolean(post.is_approved),
+                              })
+                            }
+                            className="relative w-full h-40 rounded-lg overflow-hidden bg-zinc-950 border border-zinc-800 cursor-pointer"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={post.file_url}
+                              alt={post.file_name || "Image"}
+                              className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-200"
+                            />
+                            {post.is_approved && (
+                              <div
+                                className="absolute top-2 right-2 bg-black/50 backdrop-blur-xs p-1 rounded-full border border-sky-400/30 shadow-md flex items-center justify-center pointer-events-none"
+                                title="Approved"
+                              >
+                                <VerifiedBadge className="w-3.5 h-3.5" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <span className="px-2 py-1 rounded bg-zinc-900/90 text-zinc-200 text-[11px] flex items-center gap-1 border border-zinc-700">
+                                <Eye className="w-3 h-3" /> Expand
+                              </span>
+                            </div>
                           </div>
+
+                          {/* Discreet Approve button - only visible to admin & editor */}
+                          {canEdit && (
+                            <div className="flex items-center justify-between mt-1.5 px-0.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleApprove(post);
+                                }}
+                                disabled={approvingId === post.id}
+                                className="text-[11px] text-zinc-500 hover:text-zinc-300 font-mono transition-colors flex items-center gap-1 cursor-pointer select-none py-0.5"
+                                title={post.is_approved ? "Click to revoke approval" : "Approve image"}
+                              >
+                                {post.is_approved ? (
+                                  <>
+                                    <VerifiedBadge className="w-3 h-3" />
+                                    <span className="text-sky-400 font-medium">approved</span>
+                                  </>
+                                ) : (
+                                  <span className="hover:underline">approve</span>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -909,6 +989,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
         onClose={() => setLightboxImage(null)}
         imageUrl={lightboxImage?.url || null}
         title={lightboxImage?.title || null}
+        isApproved={lightboxImage?.isApproved}
       />
 
       <NoteModal
