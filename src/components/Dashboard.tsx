@@ -66,6 +66,10 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Multi-select state (for Admin)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
   const canUpload = role === "uploader" || role === "admin";
   const canAdmin = role === "admin";
   const canEdit = role === "editor" || role === "admin";
@@ -212,6 +216,69 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Copy failed:", err);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedIds.size === filteredPosts.length && filteredPosts.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredPosts.map((p) => p.id)));
+    }
+  };
+
+  const handleBatchDownload = async () => {
+    if (selectedIds.size === 0 || downloadingZip) return;
+    setDownloadingZip(true);
+
+    try {
+      const JSZip = (await import("jszip")).default;
+      const zip = new JSZip();
+
+      const selectedPosts = posts.filter((p) => selectedIds.has(p.id));
+
+      for (const post of selectedPosts) {
+        if (post.type === "file" && post.file_url) {
+          try {
+            const res = await fetch(post.file_url);
+            if (res.ok) {
+              const blob = await res.blob();
+              const fileName = post.file_name || `file_${post.id}`;
+              zip.file(fileName, blob);
+            }
+          } catch (err) {
+            console.error("Failed to fetch file for zip:", post.file_name, err);
+          }
+        } else if (post.type === "text") {
+          const safeTitle = (post.title || "note").replace(/[^a-zA-Z0-9_-]/g, "_");
+          const fileName = `${safeTitle}.txt`;
+          zip.file(fileName, post.content || "");
+        }
+      }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const downloadUrl = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `vault_export_${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (err) {
+      console.error("Batch download error:", err);
+      alert("Failed to batch download selected items.");
+    } finally {
+      setDownloadingZip(false);
     }
   };
 
@@ -517,7 +584,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
         {/* Filter bar and Search */}
         <section className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
           {/* Filters without emojis */}
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5 text-xs flex-wrap">
             {[
               { id: "all", label: "All" },
               { id: "files", label: "Files" },
@@ -537,6 +604,40 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                 {tab.label}
               </button>
             ))}
+
+            {canAdmin && (
+              <div className="flex items-center gap-1.5 pl-2 sm:border-l sm:border-zinc-800">
+                <button
+                  type="button"
+                  onClick={selectAll}
+                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-zinc-100 transition-colors cursor-pointer"
+                >
+                  {selectedIds.size === filteredPosts.length && filteredPosts.length > 0
+                    ? "Deselect All"
+                    : "Select All"}
+                </button>
+                {selectedIds.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBatchDownload}
+                    disabled={downloadingZip}
+                    className="px-2.5 py-1 rounded-md text-xs font-medium bg-zinc-100 hover:bg-zinc-200 text-zinc-950 flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+                  >
+                    {downloadingZip ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Creating ZIP...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Download Selected ({selectedIds.size})</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Search bar */}
@@ -588,11 +689,32 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                 return (
                   <div
                     key={post.id}
-                    className="surface-card rounded-xl p-4 flex flex-col justify-between group"
+                    className={`rounded-xl p-4 flex flex-col justify-between group transition-colors ${
+                      selectedIds.has(post.id)
+                        ? "border border-zinc-400 bg-zinc-900/90 shadow-sm"
+                        : "surface-card"
+                    }`}
                   >
                     {/* Header */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex items-center gap-2">
+                        {canAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSelect(post.id);
+                            }}
+                            className={`w-4 h-4 rounded border flex items-center justify-center transition-colors cursor-pointer ${
+                              selectedIds.has(post.id)
+                                ? "bg-zinc-100 border-zinc-100 text-zinc-900"
+                                : "border-zinc-700 bg-zinc-900/60 hover:border-zinc-500 text-transparent"
+                            }`}
+                            title={selectedIds.has(post.id) ? "Deselect" : "Select item"}
+                          >
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </button>
+                        )}
                         <div className="p-1 rounded bg-zinc-800 border border-zinc-700/50">
                           {isText ? (
                             <FileCode className="w-3.5 h-3.5 text-zinc-300" />

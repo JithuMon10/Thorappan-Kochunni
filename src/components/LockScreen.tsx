@@ -52,8 +52,8 @@ export default function LockScreen({ onAuthenticated }: LockScreenProps) {
             <Lock className="w-4 h-4" />
           </div>
 
-          <h1 className="text-xl font-semibold text-zinc-100 tracking-tight">
-            thorappankochunni
+          <h1 className="text-xl font-bold text-zinc-100 tracking-wider uppercase font-mono">
+            THORAPPAN-KOCHUNNI
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
             Enter your access key to unlock the vault.
@@ -119,17 +119,6 @@ export default function LockScreen({ onAuthenticated }: LockScreenProps) {
             )}
           </button>
         </form>
-
-        {/* Clean Footer Tiers */}
-        <div className="mt-8 pt-6 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-          <span>Tier:</span>
-          <div className="flex gap-1.5">
-            <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">viewer</span>
-            <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">uploader</span>
-            <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">editor</span>
-            <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">admin</span>
-          </div>
-        </div>
       </div>
     </div>
   );
