@@ -20,11 +20,13 @@ import {
   Plus,
   RefreshCw,
   AlertCircle,
+  Edit2,
 } from "lucide-react";
 import { PostItem, UserRole } from "@/types";
 import AdminSettingsModal from "./AdminSettingsModal";
 import LightboxModal from "./LightboxModal";
 import NoteModal from "./NoteModal";
+import EditPostModal from "./EditPostModal";
 
 interface DashboardProps {
   role: UserRole;
@@ -58,6 +60,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
   const [activeModalNote, setActiveModalNote] = useState<PostItem | null>(null);
+  const [editingPost, setEditingPost] = useState<PostItem | null>(null);
 
   // Delete & copy state
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -65,6 +68,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
 
   const canUpload = role === "uploader" || role === "admin";
   const canAdmin = role === "admin";
+  const canEdit = role === "editor" || role === "admin";
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -502,7 +506,11 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
           </section>
         ) : (
           <div className="bg-zinc-900/40 border border-zinc-800/80 p-3 rounded-xl text-xs text-zinc-400 flex items-center justify-between">
-            <span>Viewing mode enabled. Enter Uploader or Admin password to add files.</span>
+            <span>
+              {role === "editor"
+                ? "Editor mode active. You can edit the name and description of any post below."
+                : "Viewing mode enabled. Enter Uploader or Admin password to add files."}
+            </span>
           </div>
         )}
 
@@ -597,16 +605,27 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                         </span>
                       </div>
 
-                      {canAdmin && (
-                        <button
-                          onClick={() => handleDelete(post.id)}
-                          disabled={deletingId === post.id}
-                          className="text-zinc-500 hover:text-red-400 opacity-60 group-hover:opacity-100 transition-opacity p-1"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-1">
+                        {canEdit && (
+                          <button
+                            onClick={() => setEditingPost(post)}
+                            className="text-zinc-500 hover:text-zinc-200 opacity-60 group-hover:opacity-100 transition-opacity p-1"
+                            title="Edit Name & Description"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {canAdmin && (
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            disabled={deletingId === post.id}
+                            className="text-zinc-500 hover:text-red-400 opacity-60 group-hover:opacity-100 transition-opacity p-1"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Title */}
@@ -774,6 +793,17 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
         isOpen={Boolean(activeModalNote)}
         onClose={() => setActiveModalNote(null)}
         post={activeModalNote}
+      />
+
+      <EditPostModal
+        isOpen={Boolean(editingPost)}
+        onClose={() => setEditingPost(null)}
+        post={editingPost}
+        onPostUpdated={(updated) => {
+          setPosts((prev) =>
+            prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+          );
+        }}
       />
     </div>
   );

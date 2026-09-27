@@ -15,7 +15,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const { targetRole, newPassword } = body;
 
-    if (!targetRole || !["viewer", "uploader", "admin"].includes(targetRole)) {
+    if (!targetRole || !["viewer", "uploader", "editor", "admin"].includes(targetRole)) {
       return NextResponse.json({ error: "Invalid target role specified." }, { status: 400 });
     }
 

@@ -67,3 +67,60 @@ export async function DELETE(
     return NextResponse.json({ error: err?.message || "Internal server error" }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const role = await getCurrentUserRole();
+  if (role !== "editor" && role !== "admin") {
+    return NextResponse.json(
+      { error: "Forbidden: Editor or Admin privileges required to edit items." },
+      { status: 403 }
+    );
+  }
+
+  const { id } = await params;
+  if (!id) {
+    return NextResponse.json({ error: "Missing item ID" }, { status: 400 });
+  }
+
+  try {
+    const body = await req.json();
+    const { title, content } = body;
+
+    const updates: { title?: string; content?: string } = {};
+    if (typeof title === "string") updates.title = title.trim();
+    if (typeof content === "string") updates.content = content;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: "No fields provided to update." }, { status: 400 });
+    }
+
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({
+        success: true,
+        post: { id, ...updates },
+        message: "Post updated (local dev mode)",
+      });
+    }
+
+    const supabase = getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("posts")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to update post:", error);
+      return NextResponse.json({ error: "Failed to update post in database" }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, post: data });
+  } catch (err: any) {
+    console.error("Update post error:", err);
+    return NextResponse.json({ error: err?.message || "Internal server error" }, { status: 500 });
+  }
+}

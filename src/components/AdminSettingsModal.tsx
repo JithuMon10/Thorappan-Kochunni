@@ -73,8 +73,8 @@ export default function AdminSettingsModal({ isOpen, onClose }: AdminSettingsMod
             <label className="block text-xs font-medium text-zinc-400 mb-1.5">
               Select Role
             </label>
-            <div className="grid grid-cols-3 gap-1.5">
-              {(["viewer", "uploader", "admin"] as UserRole[]).map((r) => (
+            <div className="grid grid-cols-4 gap-1.5">
+              {(["viewer", "uploader", "editor", "admin"] as UserRole[]).map((r) => (
                 <button
                   key={r}
                   type="button"

@@ -126,6 +126,7 @@ export default function LockScreen({ onAuthenticated }: LockScreenProps) {
           <div className="flex gap-1.5">
             <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">viewer</span>
             <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">uploader</span>
+            <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">editor</span>
             <span className="px-1.5 py-0.5 rounded bg-zinc-800/60 text-zinc-400">admin</span>
           </div>
         </div>

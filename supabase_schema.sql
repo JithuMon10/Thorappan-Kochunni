@@ -9,22 +9,29 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- 2. Create the app_passwords table
 CREATE TABLE IF NOT EXISTS app_passwords (
-  role TEXT PRIMARY KEY CHECK (role IN ('viewer', 'uploader', 'admin')),
+  role TEXT PRIMARY KEY,
   password_hash TEXT NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure check constraint includes viewer, uploader, editor, and admin
+ALTER TABLE app_passwords DROP CONSTRAINT IF EXISTS app_passwords_role_check;
+ALTER TABLE app_passwords ADD CONSTRAINT app_passwords_role_check 
+  CHECK (role IN ('viewer', 'uploader', 'editor', 'admin'));
+
 -- 3. Seed initial default passwords using standard bcrypt (Blowfish 'bf')
 -- Default passwords:
 --   - viewer   => viewer123
---   - uploader => uploader123
---   - admin    => admin123
+--   - uploader => volcano
+--   - editor   => parvathy
+--   - admin    => Sunimon2005
 -- (You can change these anytime either via SQL below or via the web app Admin Panel!)
 INSERT INTO app_passwords (role, password_hash, updated_at)
 VALUES
   ('viewer', crypt('viewer123', gen_salt('bf', 10)), NOW()),
-  ('uploader', crypt('uploader123', gen_salt('bf', 10)), NOW()),
-  ('admin', crypt('admin123', gen_salt('bf', 10)), NOW())
+  ('uploader', crypt('volcano', gen_salt('bf', 10)), NOW()),
+  ('editor', crypt('parvathy', gen_salt('bf', 10)), NOW()),
+  ('admin', crypt('Sunimon2005', gen_salt('bf', 10)), NOW())
 ON CONFLICT (role) DO UPDATE 
 SET password_hash = EXCLUDED.password_hash, updated_at = NOW();
 
@@ -42,6 +49,10 @@ SET password_hash = EXCLUDED.password_hash, updated_at = NOW();
 -- WHERE role = 'uploader';
 --
 -- UPDATE app_passwords 
+-- SET password_hash = crypt('YourNewEditorPassword', gen_salt('bf', 10)), updated_at = NOW() 
+-- WHERE role = 'editor';
+--
+-- UPDATE app_passwords 
 -- SET password_hash = crypt('YourNewAdminPassword', gen_salt('bf', 10)), updated_at = NOW() 
 -- WHERE role = 'admin';
 -- ==============================================================================
@@ -51,7 +62,7 @@ CREATE TABLE IF NOT EXISTS posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title TEXT,
   type TEXT NOT NULL CHECK (type IN ('file', 'text')),
-  content TEXT,              -- Holds note text / code snippets
+  content TEXT,              -- Holds note text / code snippets / description
   file_url TEXT,            -- URL to the file in Supabase Storage
   file_name TEXT,           -- Original name of the uploaded file
   file_size BIGINT,         -- Size in bytes
@@ -63,7 +74,6 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 
 -- 5. Storage Bucket Setup:
--- Insert the storage bucket if not already present
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('thorappankochunni_files', 'thorappankochunni_files', true)
 ON CONFLICT (id) DO UPDATE SET public = true;

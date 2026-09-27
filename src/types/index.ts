@@ -1,4 +1,4 @@
-export type UserRole = "viewer" | "uploader" | "admin";
+export type UserRole = "viewer" | "uploader" | "editor" | "admin";
 
 export interface PostItem {
   id: string;

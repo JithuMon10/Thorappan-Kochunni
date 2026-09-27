@@ -20,7 +20,7 @@ export async function createSessionToken(role: UserRole): Promise<string> {
 export async function verifySessionToken(token: string): Promise<{ role: UserRole } | null> {
   try {
     const { payload } = await jwtVerify(token, SECRET_KEY);
-    if (payload.role && ["viewer", "uploader", "admin"].includes(payload.role as string)) {
+    if (payload.role && ["viewer", "uploader", "editor", "admin"].includes(payload.role as string)) {
       return { role: payload.role as UserRole };
     }
     return null;

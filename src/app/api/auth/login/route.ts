@@ -7,6 +7,7 @@ import { UserRole } from "@/types";
 const DEV_FALLBACK_PASSWORDS: Record<string, UserRole> = {
   viewer123: "viewer",
   uploader123: "uploader",
+  parvathy: "editor",
   admin123: "admin",
 };
 
