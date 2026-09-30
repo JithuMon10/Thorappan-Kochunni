@@ -93,3 +93,16 @@ BEGIN
     USING (bucket_id = 'thorappankochunni_files');
   END IF;
 END $$;
+
+-- 6. Create app_settings table for vault configuration (e.g. site access control)
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed default site_closed setting
+INSERT INTO app_settings (key, value)
+VALUES ('site_closed', 'false')
+ON CONFLICT (key) DO NOTHING;
+

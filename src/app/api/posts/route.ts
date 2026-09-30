@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserRole } from "@/lib/auth";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabaseServer";
+import { isSiteClosed } from "@/lib/settings";
 import { PostItem } from "@/types";
 
 // In-memory store for local testing if Supabase is not connected yet
@@ -25,8 +26,13 @@ let localDevPosts: PostItem[] = [
 
 export async function GET() {
   const role = await getCurrentUserRole();
-  if (!role) {
-    return NextResponse.json({ error: "Unauthorized. Please enter access password." }, { status: 401 });
+  const siteClosed = await isSiteClosed();
+
+  if (!role || (siteClosed && role !== "admin")) {
+    return NextResponse.json(
+      { error: siteClosed ? "Site has been closed. Contact admin." : "Unauthorized. Please enter access password." },
+      { status: 403 }
+    );
   }
 
   if (!isSupabaseConfigured()) {

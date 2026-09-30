@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { X, Download, ExternalLink, Copy, Check, RefreshCw } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
 import { copyImageToClipboard } from "@/lib/clipboard";
+import { triggerFileDownload } from "@/lib/download";
 
 interface LightboxModalProps {
   isOpen: boolean;
@@ -94,14 +95,14 @@ export default function LightboxModal({
             >
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
-            <a
-              href={imageUrl}
-              download
-              className="p-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-100 transition-colors"
+            <button
+              type="button"
+              onClick={() => triggerFileDownload(imageUrl, title ? `${title.replace(/\.[^/.]+$/, "")}.png` : "image.png")}
+              className="p-1.5 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-100 transition-colors cursor-pointer"
               title="Download image"
             >
               <Download className="w-3.5 h-3.5" />
-            </a>
+            </button>
             <button
               onClick={onClose}
               className="p-1.5 rounded text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors"

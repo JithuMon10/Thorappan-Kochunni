@@ -30,6 +30,7 @@ import NoteModal from "./NoteModal";
 import EditPostModal from "./EditPostModal";
 import VerifiedBadge from "./VerifiedBadge";
 import { copyImageToClipboard } from "@/lib/clipboard";
+import { triggerFileDownload } from "@/lib/download";
 
 interface DashboardProps {
   role: UserRole;
@@ -79,6 +80,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
   // Multi-select state (for Admin)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [downloadingZip, setDownloadingZip] = useState(false);
+  const [siteClosed, setSiteClosed] = useState(false);
 
   const canUpload = role === "uploader" || role === "admin";
   const canAdmin = role === "admin";
@@ -132,7 +134,17 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+    if (canAdmin) {
+      fetch("/api/admin/site-access")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data && typeof data.siteClosed === "boolean") {
+            setSiteClosed(data.siteClosed);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [canAdmin]);
 
   const formatFileSize = (bytes?: number | null) => {
     if (!bytes || bytes === 0) return "0 B";
@@ -431,6 +443,23 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
           </button>
         </div>
       </header>
+
+      {/* Warning banner if site is closed to non-admins */}
+      {canAdmin && siteClosed && (
+        <div className="bg-red-950/60 border-b border-red-800/60 px-4 py-2 text-center text-xs text-red-200 flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          <span className="font-medium">
+            Vault is currently CLOSED to all users (Admin-only mode).
+          </span>
+          <button
+            type="button"
+            onClick={() => setAdminModalOpen(true)}
+            className="underline hover:text-white font-medium ml-1 cursor-pointer"
+          >
+            Manage Access
+          </button>
+        </div>
+      )}
 
       {/* Warning banner if Supabase is pending setup */}
       {!isSupabaseConfigured && (
@@ -1052,15 +1081,15 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                                 >
                                   <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
-                                <a
-                                  href={post.file_url}
-                                  download={post.file_name || "file"}
-                                  className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-800/70 hover:bg-zinc-800 text-zinc-300 text-xs transition-colors"
+                                <button
+                                  type="button"
+                                  onClick={() => triggerFileDownload(post.file_url!, post.file_name || "download")}
+                                  className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-800/70 hover:bg-zinc-800 text-zinc-300 text-xs transition-colors cursor-pointer"
                                   title="Download"
                                 >
                                   <Download className="w-3 h-3" />
                                   <span className="text-[11px]">Download</span>
-                                </a>
+                                </button>
                               </>
                             ) : (
                               <span className="text-[10px] text-zinc-500">
@@ -1082,6 +1111,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
       <AdminSettingsModal
         isOpen={adminModalOpen}
         onClose={() => setAdminModalOpen(false)}
+        onAccessChanged={(closed) => setSiteClosed(closed)}
       />
 
       <LightboxModal

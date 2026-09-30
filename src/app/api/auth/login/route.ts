@@ -3,11 +3,14 @@ import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabaseSer
 import { createSessionToken, verifyPassword, COOKIE_NAME } from "@/lib/auth";
 import { UserRole } from "@/types";
 
+import { isSiteClosed } from "@/lib/settings";
+
 // Default fallback passwords if Supabase is not yet configured (for local dev testing)
 const DEV_FALLBACK_PASSWORDS: Record<string, UserRole> = {
   viewer123: "viewer",
   uploader123: "uploader",
   parvathy: "editor",
+  Sunimon2005: "admin",
   admin123: "admin",
 };
 
@@ -50,6 +53,19 @@ export async function POST(req: NextRequest) {
             break;
           }
         }
+      }
+    }
+
+    const siteClosed = await isSiteClosed();
+
+    if (siteClosed) {
+      // If site is closed, only admin can log in
+      if (authenticatedRole !== "admin") {
+        await new Promise((res) => setTimeout(res, 500));
+        return NextResponse.json(
+          { error: "Site has been closed. Contact admin." },
+          { status: 403 }
+        );
       }
     }
 
