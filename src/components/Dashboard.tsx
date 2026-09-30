@@ -29,6 +29,7 @@ import LightboxModal from "./LightboxModal";
 import NoteModal from "./NoteModal";
 import EditPostModal from "./EditPostModal";
 import VerifiedBadge from "./VerifiedBadge";
+import { copyImageToClipboard } from "@/lib/clipboard";
 
 interface DashboardProps {
   role: UserRole;
@@ -71,6 +72,8 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
   // Delete & copy state
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copyingImageId, setCopyingImageId] = useState<string | null>(null);
+  const [copiedImageId, setCopiedImageId] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   // Multi-select state (for Admin)
@@ -254,6 +257,21 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
       setTimeout(() => setCopiedId(null), 2000);
     } catch (err) {
       console.error("Copy failed:", err);
+    }
+  };
+
+  const handleCopyImage = async (id: string, imageUrl: string) => {
+    if (copyingImageId === id) return;
+    setCopyingImageId(id);
+    try {
+      await copyImageToClipboard(imageUrl);
+      setCopiedImageId(id);
+      setTimeout(() => setCopiedImageId(null), 2000);
+    } catch (err: any) {
+      console.error("Failed to copy image to clipboard:", err);
+      alert("Could not copy image: " + (err?.message || "Browser error"));
+    } finally {
+      setCopyingImageId(null);
     }
   };
 
@@ -829,10 +847,39 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                                 <VerifiedBadge className="w-3.5 h-3.5" />
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
                               <span className="px-2 py-1 rounded bg-zinc-900/90 text-zinc-200 text-[11px] flex items-center gap-1 border border-zinc-700">
                                 <Eye className="w-3 h-3" /> Expand
                               </span>
+                              {canAdmin && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyImage(post.id, post.file_url!);
+                                  }}
+                                  disabled={copyingImageId === post.id}
+                                  className="px-2 py-1 rounded bg-zinc-900/90 text-zinc-200 hover:text-white text-[11px] flex items-center gap-1 border border-zinc-700 hover:border-zinc-500 transition-colors cursor-pointer"
+                                  title="Copy image to clipboard"
+                                >
+                                  {copiedImageId === post.id ? (
+                                    <>
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                      <span className="text-emerald-400">Copied</span>
+                                    </>
+                                  ) : copyingImageId === post.id ? (
+                                    <>
+                                      <RefreshCw className="w-3 h-3 animate-spin text-zinc-400" />
+                                      <span>Copying...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3 h-3" />
+                                      <span>Copy</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
 
@@ -965,6 +1012,35 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
                           </span>
 
                           <div className="flex items-center gap-1.5">
+                            {canAdmin && isImage && post.file_url && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyImage(post.id, post.file_url!);
+                                }}
+                                disabled={copyingImageId === post.id}
+                                className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-800/70 hover:bg-zinc-800 text-zinc-300 text-xs transition-colors cursor-pointer"
+                                title="Copy image to clipboard"
+                              >
+                                {copiedImageId === post.id ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                    <span className="text-[11px] text-emerald-400">Copied</span>
+                                  </>
+                                ) : copyingImageId === post.id ? (
+                                  <>
+                                    <RefreshCw className="w-3 h-3 animate-spin text-zinc-400" />
+                                    <span className="text-[11px]">Copying...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3 h-3" />
+                                    <span className="text-[11px]">Copy Image</span>
+                                  </>
+                                )}
+                              </button>
+                            )}
                             {post.file_url ? (
                               <>
                                 <a
@@ -1014,6 +1090,7 @@ export default function Dashboard({ role, onLogout, isSupabaseConfigured }: Dash
         imageUrl={lightboxImage?.url || null}
         title={lightboxImage?.title || null}
         isApproved={lightboxImage?.isApproved}
+        canAdmin={canAdmin}
       />
 
       <NoteModal

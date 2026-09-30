@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
-import { X, Download, ExternalLink } from "lucide-react";
+import React, { useState } from "react";
+import { X, Download, ExternalLink, Copy, Check, RefreshCw } from "lucide-react";
 import VerifiedBadge from "./VerifiedBadge";
+import { copyImageToClipboard } from "@/lib/clipboard";
 
 interface LightboxModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface LightboxModalProps {
   imageUrl: string | null;
   title: string | null;
   isApproved?: boolean;
+  canAdmin?: boolean;
 }
 
 export default function LightboxModal({
@@ -18,8 +20,27 @@ export default function LightboxModal({
   imageUrl,
   title,
   isApproved,
+  canAdmin,
 }: LightboxModalProps) {
+  const [copying, setCopying] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   if (!isOpen || !imageUrl) return null;
+
+  const handleCopy = async () => {
+    if (!imageUrl || copying) return;
+    setCopying(true);
+    try {
+      await copyImageToClipboard(imageUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err: any) {
+      console.error("Failed to copy image to clipboard:", err);
+      alert("Could not copy image to clipboard: " + (err?.message || "Browser error"));
+    } finally {
+      setCopying(false);
+    }
+  };
 
   return (
     <div
@@ -38,6 +59,32 @@ export default function LightboxModal({
             {isApproved && <VerifiedBadge className="w-4 h-4" />}
           </div>
           <div className="flex items-center gap-1.5">
+            {canAdmin && (
+              <button
+                type="button"
+                onClick={handleCopy}
+                disabled={copying}
+                className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs transition-colors cursor-pointer border border-zinc-700/60"
+                title="Copy image to clipboard"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-[11px] text-emerald-400">Copied</span>
+                  </>
+                ) : copying ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-zinc-400" />
+                    <span className="text-[11px]">Copying...</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span className="text-[11px]">Copy Image</span>
+                  </>
+                )}
+              </button>
+            )}
             <a
               href={imageUrl}
               target="_blank"
